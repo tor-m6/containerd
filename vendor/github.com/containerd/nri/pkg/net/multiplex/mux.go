@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -294,7 +295,7 @@ func (m *mux) reader() {
 				err = io.EOF
 			case errors.Is(err, ttrpc.ErrServerClosed):
 				err = io.EOF
-			case errors.Is(err, net.ErrClosed):
+			case errors.Is(err, os.ErrClosed):
 				err = io.EOF
 			default:
 				err = fmt.Errorf("failed to read header from trunk: %w", err)
@@ -316,7 +317,7 @@ func (m *mux) reader() {
 				err = io.EOF
 			case errors.Is(err, ttrpc.ErrServerClosed):
 				err = io.EOF
-			case errors.Is(err, net.ErrClosed):
+			case errors.Is(err, os.ErrClosed):
 				err = io.EOF
 			default:
 				err = fmt.Errorf("failed to read payload from trunk: %w", err)

@@ -1892,7 +1892,7 @@ func (st *stream) copyTrailersToHandlerRequest() {
 func (st *stream) onReadTimeout() {
 	// Wrap the ErrDeadlineExceeded to avoid callers depending on us
 	// returning the bare error.
-	st.body.CloseWithError(fmt.Errorf("%w", os.ErrDeadlineExceeded))
+	st.body.CloseWithError(fmt.Errorf("os.ErrDeadlineExceeded"))
 }
 
 // onWriteTimeout is run on its own goroutine (from time.AfterFunc)
@@ -1901,7 +1901,7 @@ func (st *stream) onWriteTimeout() {
 	st.sc.writeFrameFromHandler(FrameWriteRequest{write: StreamError{
 		StreamID: st.id,
 		Code:     ErrCodeInternal,
-		Cause:    os.ErrDeadlineExceeded,
+		Cause:    nil,
 	}})
 }
 

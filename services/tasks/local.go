@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/myos"
 	api "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/api/types/task"
@@ -67,8 +68,6 @@ const (
 
 // Config for the tasks service plugin
 type Config struct {
-	// BlockIOConfigFile specifies the path to blockio configuration file
-	BlockIOConfigFile string `toml:"blockio_config_file" json:"blockioConfigFile"`
 	// RdtConfigFile specifies the path to RDT configuration file
 	RdtConfigFile string `toml:"rdt_config_file" json:"rdtConfigFile"`
 }
@@ -141,9 +140,6 @@ func initFunc(ic *plugin.InitContext) (interface{}, error) {
 		l.monitor.Monitor(t, nil)
 	}
 
-	if err := initBlockIO(config.BlockIOConfigFile); err != nil {
-		log.G(ic.Context).WithError(err).Errorf("blockio initialization failed")
-	}
 	if err := initRdt(config.RdtConfigFile); err != nil {
 		log.G(ic.Context).WithError(err).Errorf("RDT initialization failed")
 	}
@@ -172,7 +168,7 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 	}
 	// jump get checkpointPath from checkpoint image
 	if checkpointPath == "" && r.Checkpoint != nil {
-		checkpointPath, err = os.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "ctrd-checkpoint")
+		checkpointPath, err = myos.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "ctrd-checkpoint")
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +224,7 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 		return nil, err
 	}
 	_, err = rtime.Get(ctx, r.ContainerID)
-	if err != nil && !errdefs.IsNotFound(err) {
+	if err != nil && err != runtime.ErrTaskNotExists {
 		return nil, errdefs.ToGRPC(err)
 	}
 	if err == nil {
@@ -560,7 +556,7 @@ func (l *local) Checkpoint(ctx context.Context, r *api.CheckpointTaskRequest, _ 
 	checkpointImageExists := false
 	if image == "" {
 		checkpointImageExists = true
-		image, err = os.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "ctrd-checkpoint")
+		image, err = myos.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "ctrd-checkpoint")
 		if err != nil {
 			return nil, errdefs.ToGRPC(err)
 		}

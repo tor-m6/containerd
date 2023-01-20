@@ -22,11 +22,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	shimapi "github.com/containerd/containerd/api/runtime/task/v2"
@@ -51,7 +51,7 @@ type Publisher interface {
 // StartOpts describes shim start configuration received from containerd
 type StartOpts struct {
 	ID               string // TODO(2.0): Remove ID, passed directly to start for call symmetry
-	ContainerdBinary string // TODO(2.0): Remove ContainerdBinary, use the TTRPC_ADDRESS env to forward events
+	ContainerdBinary string
 	Address          string
 	TTRPCAddress     string
 	Debug            bool
@@ -148,9 +148,7 @@ func parseFlags() {
 	flag.StringVar(&bundlePath, "bundle", "", "path to the bundle if not workdir")
 
 	flag.StringVar(&addressFlag, "address", "", "grpc address back to main containerd")
-	flag.StringVar(&containerdBinaryFlag, "publish-binary", "",
-		fmt.Sprintf("path to publish binary (used for publishing events), but %s will ignore this flag, please use the %s env", os.Args[0], ttrpcAddressEnv),
-	)
+	flag.StringVar(&containerdBinaryFlag, "publish-binary", "containerd", "path to publish binary (used for publishing events)")
 
 	flag.Parse()
 	action = flag.Arg(0)
@@ -312,9 +310,6 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 	// Handle explicit actions
 	switch action {
 	case "delete":
-		if debugFlag {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
 		logger := log.G(ctx).WithFields(logrus.Fields{
 			"pid":       os.Getpid(),
 			"namespace": namespaceFlag,
@@ -338,9 +333,10 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 		return nil
 	case "start":
 		opts := StartOpts{
-			Address:      addressFlag,
-			TTRPCAddress: ttrpcAddress,
-			Debug:        debugFlag,
+			ContainerdBinary: containerdBinaryFlag,
+			Address:          addressFlag,
+			TTRPCAddress:     ttrpcAddress,
+			Debug:            debugFlag,
 		}
 
 		address, err := manager.Start(ctx, id, opts)
@@ -403,14 +399,14 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 		initContext.TTRPCAddress = ttrpcAddress
 
 		// load the plugin specific configuration if it is provided
-		// TODO: Read configuration passed into shim, or from state directory?
-		// if p.Config != nil {
+		//TODO: Read configuration passed into shim, or from state directory?
+		//if p.Config != nil {
 		//	pc, err := config.Decode(p)
 		//	if err != nil {
 		//		return nil, err
 		//	}
 		//	initContext.Config = pc
-		// }
+		//}
 
 		result := p.Init(initContext)
 		if err := initialized.Add(result); err != nil {
@@ -490,7 +486,8 @@ func serve(ctx context.Context, server *ttrpc.Server, signals chan os.Signal, sh
 	}
 	go func() {
 		defer l.Close()
-		if err := server.Serve(ctx, l); err != nil && !errors.Is(err, net.ErrClosed) {
+		if err := server.Serve(ctx, l); err != nil &&
+			!strings.Contains(err.Error(), "use of closed network connection") {
 			log.G(ctx).WithError(err).Fatal("containerd-shim: ttrpc server failure")
 		}
 	}()

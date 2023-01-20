@@ -2,7 +2,7 @@
 
 package bbolt
 
-import "golang.org/x/sys/unix"
+import "syscall"
 
 // mlock locks memory of db file
 func mlock(db *DB, fileSize int) error {
@@ -11,7 +11,7 @@ func mlock(db *DB, fileSize int) error {
 		// Can't lock more than mmaped slice
 		sizeToLock = db.datasz
 	}
-	if err := unix.Mlock(db.dataref[:sizeToLock]); err != nil {
+	if err := syscall.Mlock(db.dataref[:sizeToLock]); err != nil {
 		return err
 	}
 	return nil
@@ -29,7 +29,7 @@ func munlock(db *DB, fileSize int) error {
 		sizeToUnlock = db.datasz
 	}
 
-	if err := unix.Munlock(db.dataref[:sizeToUnlock]); err != nil {
+	if err := syscall.Munlock(db.dataref[:sizeToUnlock]); err != nil {
 		return err
 	}
 	return nil

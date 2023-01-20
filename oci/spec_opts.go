@@ -23,11 +23,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 
+	"github.com/containerd/containerd/mystrings"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/images"
@@ -155,7 +157,7 @@ func WithSpecFromBytes(p []byte) SpecOpts {
 // WithSpecFromFile loads the specification from the provided filename.
 func WithSpecFromFile(filename string) SpecOpts {
 	return func(ctx context.Context, c Client, container *containers.Container, s *Spec) error {
-		p, err := os.ReadFile(filename)
+		p, err := ioutil.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("cannot load spec config file: %w", err)
 		}
@@ -187,14 +189,14 @@ func replaceOrAppendEnvValues(defaults, overrides []string) []string {
 	cache := make(map[string]int, len(defaults))
 	results := make([]string, 0, len(defaults))
 	for i, e := range defaults {
-		k, _, _ := strings.Cut(e, "=")
+		k, _, _ := mystrings.Cut(e, "=")
 		results = append(results, e)
 		cache[k] = i
 	}
 
 	for _, value := range overrides {
 		// Values w/o = means they want this env to be removed/unset.
-		k, _, ok := strings.Cut(value, "=")
+		k, _, ok := mystrings.Cut(value, "=")
 		if !ok {
 			if i, exists := cache[k]; exists {
 				results[i] = "" // Used to indicate it should be removed

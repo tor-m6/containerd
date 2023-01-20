@@ -394,10 +394,10 @@ func (f Formatter) prettyWithFlags(value interface{}, flags uint32, depth int) s
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64)
-	case complex64:
-		return `"` + strconv.FormatComplex(complex128(v), 'f', -1, 64) + `"`
-	case complex128:
-		return `"` + strconv.FormatComplex(v, 'f', -1, 128) + `"`
+	// case complex64:
+	// 	return `"` + strconv.FormatComplex(complex128(v), 'f', -1, 64) + `"`
+	// case complex128:
+	// 	return `"` + strconv.FormatComplex(v, 'f', -1, 128) + `"`
 	case PseudoStruct:
 		buf := bytes.NewBuffer(make([]byte, 0, 1024))
 		v = f.sanitize(v)
@@ -439,10 +439,10 @@ func (f Formatter) prettyWithFlags(value interface{}, flags uint32, depth int) s
 		return strconv.FormatFloat(float64(v.Float()), 'f', -1, 32)
 	case reflect.Float64:
 		return strconv.FormatFloat(v.Float(), 'f', -1, 64)
-	case reflect.Complex64:
-		return `"` + strconv.FormatComplex(complex128(v.Complex()), 'f', -1, 64) + `"`
-	case reflect.Complex128:
-		return `"` + strconv.FormatComplex(v.Complex(), 'f', -1, 128) + `"`
+	// case reflect.Complex64:
+	// 	return `"` + strconv.FormatComplex(complex128(v.Complex()), 'f', -1, 64) + `"`
+	// case reflect.Complex128:
+	// 	return `"` + strconv.FormatComplex(v.Complex(), 'f', -1, 128) + `"`
 	case reflect.Struct:
 		if flags&flagRawStruct == 0 {
 			buf.WriteByte('{')

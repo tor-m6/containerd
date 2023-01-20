@@ -21,13 +21,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	gruntime "runtime"
 	"strings"
-
-	"github.com/containerd/ttrpc"
-	"github.com/sirupsen/logrus"
 
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/log"
@@ -37,6 +35,8 @@ import (
 	"github.com/containerd/containerd/protobuf/types"
 	"github.com/containerd/containerd/runtime"
 	client "github.com/containerd/containerd/runtime/v2/shim"
+	"github.com/containerd/ttrpc"
+	"github.com/sirupsen/logrus"
 )
 
 type shimBinaryConfig struct {
@@ -132,7 +132,7 @@ func (b *binary) Start(ctx context.Context, opts *types.Any, onClose func()) (_ 
 		f.Close()
 	}
 	// Save runtime binary path for restore.
-	if err := os.WriteFile(filepath.Join(b.bundle.Path, "shim-binary-path"), []byte(b.runtime), 0600); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(b.bundle.Path, "shim-binary-path"), []byte(b.runtime), 0600); err != nil {
 		return nil, err
 	}
 	client := ttrpc.NewClient(conn, ttrpc.WithOnClose(onCloseWithShimLog))
@@ -154,15 +154,6 @@ func (b *binary) Delete(ctx context.Context) (*runtime.Exit, error) {
 	if gruntime.GOOS != "windows" && gruntime.GOOS != "freebsd" {
 		bundlePath = b.bundle.Path
 	}
-	args := []string{
-		"-id", b.bundle.ID,
-		"-bundle", b.bundle.Path,
-	}
-	switch logrus.GetLevel() {
-	case logrus.DebugLevel, logrus.TraceLevel:
-		args = append(args, "-debug")
-	}
-	args = append(args, "delete")
 
 	cmd, err := client.Command(ctx,
 		&client.CommandConfig{
@@ -171,7 +162,11 @@ func (b *binary) Delete(ctx context.Context) (*runtime.Exit, error) {
 			TTRPCAddress: b.containerdTTRPCAddress,
 			Path:         bundlePath,
 			Opts:         nil,
-			Args:         args,
+			Args: []string{
+				"-id", b.bundle.ID,
+				"-bundle", b.bundle.Path,
+				"delete",
+			},
 		})
 
 	if err != nil {

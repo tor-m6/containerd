@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -298,7 +299,7 @@ func (r dockerFetcher) open(ctx context.Context, req *request, mediatype string,
 
 			// Discard up to offset
 			// Could use buffer pool here but this case should be rare
-			n, err := io.Copy(io.Discard, io.LimitReader(resp.Body, offset))
+			n, err := io.Copy(ioutil.Discard, io.LimitReader(resp.Body, offset))
 			if err != nil {
 				return nil, fmt.Errorf("failed to discard to offset: %w", err)
 			}

@@ -19,7 +19,9 @@ package hasher
 import (
 	"hash"
 
-	sha256simd "github.com/minio/sha256-simd"
+	// sha256simd "github.com/minio/sha256-simd"
+	sha256simd "crypto/sha256"
+
 )
 
 func NewSHA256() hash.Hash {

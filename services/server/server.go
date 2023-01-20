@@ -24,6 +24,7 @@ import (
 	"expvar"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -151,7 +152,7 @@ func New(ctx context.Context, config *srvconfig.Config) (*Server, error) {
 
 		if config.GRPC.TCPTLSCA != "" {
 			caCertPool := x509.NewCertPool()
-			caCert, err := os.ReadFile(config.GRPC.TCPTLSCA)
+			caCert, err := ioutil.ReadFile(config.GRPC.TCPTLSCA)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load CA file: %w", err)
 			}
@@ -480,7 +481,7 @@ func (pc *proxyClients) getClient(address string) (*grpc.ClientConn, error) {
 }
 
 func trapClosedConnErr(err error) error {
-	if err == nil || errors.Is(err, net.ErrClosed) {
+	if err == nil || errors.Is(err, os.ErrClosed) {
 		return nil
 	}
 	return err

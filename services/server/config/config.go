@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"github.com/pelletier/go-toml"
+	// "github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 
 	"github.com/containerd/containerd/errdefs"
@@ -58,7 +58,7 @@ type Config struct {
 	// required plugin doesn't exist or fails to be initialized or started.
 	RequiredPlugins []string `toml:"required_plugins"`
 	// Plugins provides plugin specific configuration for the initialization of a plugin
-	Plugins map[string]toml.Tree `toml:"plugins"`
+	// Plugins map[string]toml.Tree `toml:"plugins"`
 	// OOMScore adjust the containerd's oom score
 	OOMScore int `toml:"oom_score"`
 	// Cgroup specifies cgroup information for the containerd daemon process
@@ -113,11 +113,11 @@ func (c *Config) ValidateV2() error {
 			return fmt.Errorf("invalid required plugin URI %q expect io.containerd.x.vx", p)
 		}
 	}
-	for p := range c.Plugins {
-		if !strings.HasPrefix(p, "io.containerd.") || len(strings.SplitN(p, ".", 4)) < 4 {
-			return fmt.Errorf("invalid plugin key URI %q expect io.containerd.x.vx", p)
-		}
-	}
+	// for p := range c.Plugins {
+	// 	if !strings.HasPrefix(p, "io.containerd.") || len(strings.SplitN(p, ".", 4)) < 4 {
+	// 		return fmt.Errorf("invalid plugin key URI %q expect io.containerd.x.vx", p)
+	// 	}
+	// }
 	return nil
 }
 
@@ -170,18 +170,19 @@ type ProxyPlugin struct {
 
 // Decode unmarshals a plugin specific configuration by plugin id
 func (c *Config) Decode(p *plugin.Registration) (interface{}, error) {
-	id := p.URI()
-	if c.GetVersion() == 1 {
-		id = p.ID
-	}
-	data, ok := c.Plugins[id]
-	if !ok {
-		return p.Config, nil
-	}
-	if err := data.Unmarshal(p.Config); err != nil {
-		return nil, err
-	}
-	return p.Config, nil
+	// id := p.URI()
+	// if c.GetVersion() == 1 {
+	// 	id = p.ID
+	// }
+	// data, ok := c.Plugins[id]
+	// if !ok {
+	// 	return p.Config, nil
+	// }
+	// if err := data.Unmarshal(p.Config); err != nil {
+	// 	return nil, err
+	// }
+	// return p.Config, nil
+	return nil,nil
 }
 
 // LoadConfig loads the containerd server config from the provided path
@@ -236,18 +237,19 @@ func LoadConfig(path string, out *Config) error {
 
 // loadConfigFile decodes a TOML file at the given path
 func loadConfigFile(path string) (*Config, error) {
-	config := &Config{}
+	// config := &Config{}
 
-	file, err := toml.LoadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load TOML: %s: %w", path, err)
-	}
+	// file, err := toml.LoadFile(path)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to load TOML: %s: %w", path, err)
+	// }
 
-	if err := file.Unmarshal(config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal TOML: %w", err)
-	}
+	// if err := file.Unmarshal(config); err != nil {
+	// 	return nil, fmt.Errorf("failed to unmarshal TOML: %w", err)
+	// }
 
-	return config, nil
+	// return config, nil
+	return nil,nil
 }
 
 // resolveImports resolves import strings list to absolute paths list:
@@ -294,9 +296,9 @@ func mergeConfig(to, from *Config) error {
 	}
 
 	// Replace entire sections instead of merging map's values.
-	for k, v := range from.Plugins {
-		to.Plugins[k] = v
-	}
+	// for k, v := range from.Plugins {
+	// 	to.Plugins[k] = v
+	// }
 
 	for k, v := range from.StreamProcessors {
 		to.StreamProcessors[k] = v

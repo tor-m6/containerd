@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/containerd/cgroups/v3/cgroup1"
+	"github.com/containerd/cgroups"
 	exec "golang.org/x/sys/execabs"
 )
 
@@ -31,7 +31,7 @@ func getSysProcAttr() *syscall.SysProcAttr {
 }
 
 func setCgroup(cgroupPath string, cmd *exec.Cmd) error {
-	cg, err := cgroup1.Load(cgroup1.StaticPath(cgroupPath))
+	cg, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
 	if err != nil {
 		return fmt.Errorf("failed to load cgroup %s: %w", cgroupPath, err)
 	}

@@ -1,5 +1,5 @@
-//go:build linux || openbsd || solaris
-// +build linux openbsd solaris
+//go:build linux || openbsd || solaris || inno
+// +build linux openbsd solaris inno
 
 /*
    Copyright The containerd Authors.

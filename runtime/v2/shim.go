@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/containerd/containerd/events/exchange"
 	"github.com/containerd/containerd/identifiers"
 	"github.com/containerd/containerd/log"
+	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/pkg/timeout"
 	"github.com/containerd/containerd/protobuf"
 	ptypes "github.com/containerd/containerd/protobuf/types"
@@ -39,6 +41,7 @@ import (
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
 	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -54,14 +57,14 @@ func init() {
 }
 
 func loadAddress(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
 	return string(data), nil
 }
 
-func loadShim(ctx context.Context, bundle *Bundle, onClose func()) (_ ShimInstance, err error) {
+func loadShim(ctx context.Context, bundle *Bundle, onClose func()) (_ *shimTask, err error) {
 	address, err := loadAddress(filepath.Join(bundle.Path, "address"))
 	if err != nil {
 		return nil, err
@@ -115,28 +118,38 @@ func loadShim(ctx context.Context, bundle *Bundle, onClose func()) (_ ShimInstan
 			client.Close()
 		}
 	}()
-	shim := &shim{
-		bundle: bundle,
-		client: client,
+	s := &shimTask{
+		shim: &shim{
+			bundle: bundle,
+			client: client,
+		},
+		task: task.NewTaskClient(client),
 	}
 	ctx, cancel := timeout.WithContext(ctx, loadTimeout)
 	defer cancel()
-	// Check connectivity, TaskService is the only required service, so create a temp one to check connection.
-	s := newShimTask(shim)
+
+	// Check connectivity
 	if _, err := s.PID(ctx); err != nil {
 		return nil, err
 	}
-	return shim, nil
+	return s, nil
 }
 
-func cleanupAfterDeadShim(ctx context.Context, id string, rt *runtime.NSMap[ShimInstance], events *exchange.Exchange, binaryCall *binary) {
+func cleanupAfterDeadShim(ctx context.Context, id, ns string, rt *runtime.TaskList, events *exchange.Exchange, binaryCall *binary) {
+	ctx = namespaces.WithNamespace(ctx, ns)
 	ctx, cancel := timeout.WithContext(ctx, cleanupTimeout)
 	defer cancel()
 
-	log.G(ctx).WithField("id", id).Warn("cleaning up after shim disconnected")
+	log.G(ctx).WithFields(logrus.Fields{
+		"id":        id,
+		"namespace": ns,
+	}).Warn("cleaning up after shim disconnected")
 	response, err := binaryCall.Delete(ctx)
 	if err != nil {
-		log.G(ctx).WithError(err).WithField("id", id).Warn("failed to clean up after shim disconnected")
+		log.G(ctx).WithError(err).WithFields(logrus.Fields{
+			"id":        id,
+			"namespace": ns,
+		}).Warn("failed to clean up after shim disconnected")
 	}
 
 	if _, err := rt.Get(ctx, id); err != nil {
@@ -174,8 +187,10 @@ func cleanupAfterDeadShim(ctx context.Context, id string, rt *runtime.NSMap[Shim
 	})
 }
 
-// ShimInstance represents running shim process managed by ShimManager.
-type ShimInstance interface {
+// ShimProcess represents a shim instance managed by the shim service.
+type ShimProcess interface {
+	runtime.Process
+
 	// ID of the shim.
 	ID() string
 	// Namespace of this shim.
@@ -184,16 +199,12 @@ type ShimInstance interface {
 	Bundle() string
 	// Client returns the underlying TTRPC client for this shim.
 	Client() *ttrpc.Client
-	// Delete will close the client and remove bundle from disk.
-	Delete(ctx context.Context) error
 }
 
 type shim struct {
 	bundle *Bundle
 	client *ttrpc.Client
 }
-
-var _ ShimInstance = (*shim)(nil)
 
 // ID of the shim/task
 func (s *shim) ID() string {
@@ -208,16 +219,16 @@ func (s *shim) Bundle() string {
 	return s.bundle.Path
 }
 
-func (s *shim) Client() *ttrpc.Client {
-	return s.client
+func (s *shim) Close() error {
+	return s.client.Close()
 }
 
-func (s *shim) Delete(ctx context.Context) error {
+func (s *shim) delete(ctx context.Context) error {
 	var (
 		result *multierror.Error
 	)
 
-	if err := s.client.Close(); err != nil {
+	if err := s.Close(); err != nil {
 		result = multierror.Append(result, fmt.Errorf("failed to close ttrpc client: %w", err))
 	}
 
@@ -237,15 +248,12 @@ var _ runtime.Task = &shimTask{}
 
 // shimTask wraps shim process and adds task service client for compatibility with existing shim manager.
 type shimTask struct {
-	ShimInstance
+	*shim
 	task task.TaskService
 }
 
-func newShimTask(shim ShimInstance) *shimTask {
-	return &shimTask{
-		ShimInstance: shim,
-		task:         task.NewTaskClient(shim.Client()),
-	}
+func (s *shimTask) Client() *ttrpc.Client {
+	return s.client
 }
 
 func (s *shimTask) Shutdown(ctx context.Context) error {
@@ -312,7 +320,7 @@ func (s *shimTask) delete(ctx context.Context, sandboxed bool, removeTask func(c
 		}
 	}
 
-	if err := s.ShimInstance.Delete(ctx); err != nil {
+	if err := s.shim.delete(ctx); err != nil {
 		log.G(ctx).WithField("id", s.ID()).WithError(err).Error("failed to delete shim")
 	}
 
@@ -338,7 +346,7 @@ func (s *shimTask) Create(ctx context.Context, opts runtime.CreateOpts) (runtime
 	}
 	request := &task.CreateTaskRequest{
 		ID:         s.ID(),
-		Bundle:     s.Bundle(),
+		Bundle:     s.bundle.Path,
 		Stdin:      opts.IO.Stdin,
 		Stdout:     opts.IO.Stdout,
 		Stderr:     opts.IO.Stderr,

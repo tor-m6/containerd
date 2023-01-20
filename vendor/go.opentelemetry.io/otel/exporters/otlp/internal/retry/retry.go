@@ -19,10 +19,10 @@ package retry // import "go.opentelemetry.io/otel/exporters/otlp/internal/retry"
 
 import (
 	"context"
-	"fmt"
+	// "fmt"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	// "github.com/cenkalti/backoff/v4"
 )
 
 // DefaultConfig are the recommended defaults to use.
@@ -70,60 +70,60 @@ type EvaluateFunc func(error) (bool, time.Duration)
 // if requests can be retried and based on the exponential backoff
 // configuration of c.
 func (c Config) RequestFunc(evaluate EvaluateFunc) RequestFunc {
-	if !c.Enabled {
+	// if !c.Enabled {
 		return func(ctx context.Context, fn func(context.Context) error) error {
 			return fn(ctx)
 		}
-	}
+	// }
 
-	// Do not use NewExponentialBackOff since it calls Reset and the code here
-	// must call Reset after changing the InitialInterval (this saves an
-	// unnecessary call to Now).
-	b := &backoff.ExponentialBackOff{
-		InitialInterval:     c.InitialInterval,
-		RandomizationFactor: backoff.DefaultRandomizationFactor,
-		Multiplier:          backoff.DefaultMultiplier,
-		MaxInterval:         c.MaxInterval,
-		MaxElapsedTime:      c.MaxElapsedTime,
-		Stop:                backoff.Stop,
-		Clock:               backoff.SystemClock,
-	}
-	b.Reset()
+	// // Do not use NewExponentialBackOff since it calls Reset and the code here
+	// // must call Reset after changing the InitialInterval (this saves an
+	// // unnecessary call to Now).
+	// b := &backoff.ExponentialBackOff{
+	// 	InitialInterval:     c.InitialInterval,
+	// 	RandomizationFactor: backoff.DefaultRandomizationFactor,
+	// 	Multiplier:          backoff.DefaultMultiplier,
+	// 	MaxInterval:         c.MaxInterval,
+	// 	MaxElapsedTime:      c.MaxElapsedTime,
+	// 	Stop:                backoff.Stop,
+	// 	Clock:               backoff.SystemClock,
+	// }
+	// b.Reset()
 
-	return func(ctx context.Context, fn func(context.Context) error) error {
-		for {
-			err := fn(ctx)
-			if err == nil {
-				return nil
-			}
+	// return func(ctx context.Context, fn func(context.Context) error) error {
+	// 	for {
+	// 		err := fn(ctx)
+	// 		if err == nil {
+	// 			return nil
+	// 		}
 
-			retryable, throttle := evaluate(err)
-			if !retryable {
-				return err
-			}
+	// 		retryable, throttle := evaluate(err)
+	// 		if !retryable {
+	// 			return err
+	// 		}
 
-			bOff := b.NextBackOff()
-			if bOff == backoff.Stop {
-				return fmt.Errorf("max retry time elapsed: %w", err)
-			}
+	// 		bOff := b.NextBackOff()
+	// 		if bOff == backoff.Stop {
+	// 			return fmt.Errorf("max retry time elapsed: %w", err)
+	// 		}
 
-			// Wait for the greater of the backoff or throttle delay.
-			var delay time.Duration
-			if bOff > throttle {
-				delay = bOff
-			} else {
-				elapsed := b.GetElapsedTime()
-				if b.MaxElapsedTime != 0 && elapsed+throttle > b.MaxElapsedTime {
-					return fmt.Errorf("max retry time would elapse: %w", err)
-				}
-				delay = throttle
-			}
+	// 		// Wait for the greater of the backoff or throttle delay.
+	// 		var delay time.Duration
+	// 		if bOff > throttle {
+	// 			delay = bOff
+	// 		} else {
+	// 			elapsed := b.GetElapsedTime()
+	// 			if b.MaxElapsedTime != 0 && elapsed+throttle > b.MaxElapsedTime {
+	// 				return fmt.Errorf("max retry time would elapse: %w", err)
+	// 			}
+	// 			delay = throttle
+	// 		}
 
-			if err := waitFunc(ctx, delay); err != nil {
-				return err
-			}
-		}
-	}
+	// 		if err := waitFunc(ctx, delay); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
 }
 
 // Allow override for testing.

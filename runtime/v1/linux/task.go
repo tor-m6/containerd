@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 /*
    Copyright The containerd Authors.
@@ -24,7 +25,7 @@ import (
 	"fmt"
 	"sync"
 
-	cgroups "github.com/containerd/cgroups/v3/cgroup1"
+	"github.com/containerd/cgroups"
 	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events/exchange"
@@ -47,17 +48,17 @@ type Task struct {
 	namespace string
 	cg        cgroups.Cgroup
 	events    *exchange.Exchange
-	tasks     *runtime.NSMap[runtime.Task]
+	tasks     *runtime.TaskList
 	bundle    *bundle
 }
 
-func newTask(id, namespace string, pid int, shim *client.Client, events *exchange.Exchange, list *runtime.NSMap[runtime.Task], bundle *bundle) (*Task, error) {
+func newTask(id, namespace string, pid int, shim *client.Client, events *exchange.Exchange, list *runtime.TaskList, bundle *bundle) (*Task, error) {
 	var (
 		err error
 		cg  cgroups.Cgroup
 	)
 	if pid > 0 {
-		cg, err = cgroups.Load(cgroups.PidPath(pid))
+		cg, err = cgroups.Load(cgroups.V1, cgroups.PidPath(pid))
 		if err != nil && err != cgroups.ErrCgroupDeleted {
 			return nil, err
 		}
@@ -134,7 +135,7 @@ func (t *Task) Start(ctx context.Context) error {
 	}
 	t.pid = int(r.Pid)
 	if !hasCgroup {
-		cg, err := cgroups.Load(cgroups.PidPath(t.pid))
+		cg, err := cgroups.Load(cgroups.V1, cgroups.PidPath(t.pid))
 		if err != nil && err != cgroups.ErrCgroupDeleted {
 			return err
 		}

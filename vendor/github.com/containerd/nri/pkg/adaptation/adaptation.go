@@ -20,7 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
+	// "io/fs"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -443,12 +444,12 @@ func (r *Adaptation) discoverPlugins() ([]string, []string, []string, error) {
 		plugins []string
 		indices []string
 		configs []string
-		entries []os.DirEntry
-		info    fs.FileInfo
+		entries []os.FileInfo
+		// info    os.FileInfo
 		err     error
 	)
 
-	if entries, err = os.ReadDir(r.pluginPath); err != nil {
+	if entries, err = ioutil.ReadDir(r.pluginPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil, nil, nil
 		}
@@ -460,10 +461,10 @@ func (r *Adaptation) discoverPlugins() ([]string, []string, []string, error) {
 		if e.IsDir() {
 			continue
 		}
-		if info, err = e.Info(); err != nil {
-			continue
-		}
-		if info.Mode()&fs.FileMode(0o111) == 0 {
+		// if info, err = e.Info(); err != nil {
+		// 	continue
+		// }
+		if e.Mode()&os.FileMode(0o111) == 0 {
 			continue
 		}
 

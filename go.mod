@@ -38,7 +38,6 @@ require (
 	github.com/imdario/mergo v0.3.12
 	github.com/intel/goresctrl v0.2.0
 	github.com/klauspost/compress v1.15.11
-	github.com/minio/sha256-simd v1.0.0
 	github.com/moby/locker v1.0.1
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/moby/sys/sequential v0.5.0
@@ -52,7 +51,7 @@ require (
 	// We use a replace to handle that until a new version is tagged.
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.10.2
-	github.com/pelletier/go-toml v1.9.5
+	github.com/pelletier/go-toml v1.9.3
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
@@ -145,3 +144,4 @@ require (
 replace github.com/opencontainers/runtime-tools => github.com/opencontainers/runtime-tools v0.0.0-20221026201742-946c877fa809
 
 replace github.com/AdaLogics/go-fuzz-headers => github.com/AdamKorcz/go-fuzz-headers-1 v0.0.0-20230111232327-1f10f66a31bf
+

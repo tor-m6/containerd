@@ -16,7 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
+	// "io/fs"
 	"log"
 	"math"
 	mathrand "math/rand"
@@ -471,7 +471,7 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 		}
 		nn, err := sew.conn.Write(p[n:])
 		n += nn
-		if n < len(p) && nn > 0 && errors.Is(err, os.ErrDeadlineExceeded) {
+		if n < len(p) && nn > 0 && errors.Is(err, nil) { //os.ErrDeadlineExceeded
 			// Keep extending the deadline so long as we're making progress.
 			continue
 		}
@@ -3063,7 +3063,7 @@ func (gz *gzipReader) Close() error {
 	if err := gz.body.Close(); err != nil {
 		return err
 	}
-	gz.zerr = fs.ErrClosed
+	gz.zerr = os.ErrClosed
 	return nil
 }
 

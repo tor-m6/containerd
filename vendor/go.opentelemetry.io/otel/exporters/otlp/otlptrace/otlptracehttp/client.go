@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -42,7 +43,7 @@ const contentTypeProto = "application/x-protobuf"
 
 var gzPool = sync.Pool{
 	New: func() interface{} {
-		w := gzip.NewWriter(io.Discard)
+		w := gzip.NewWriter(ioutil.Discard)
 		return w
 	},
 }
@@ -191,7 +192,7 @@ func (d *client) UploadTraces(ctx context.Context, protoSpans []*tracepb.Resourc
 
 		case http.StatusTooManyRequests, http.StatusServiceUnavailable:
 			// Retry-able failures.  Drain the body to reuse the connection.
-			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
 				otel.Handle(err)
 			}
 			return newResponseError(resp.Header)
@@ -261,7 +262,7 @@ func (d *client) MarshalLog() interface{} {
 // bodyReader returns a closure returning a new reader for buf.
 func bodyReader(buf []byte) func() io.ReadCloser {
 	return func() io.ReadCloser {
-		return io.NopCloser(bytes.NewReader(buf))
+		return ioutil.NopCloser(bytes.NewReader(buf))
 	}
 }
 

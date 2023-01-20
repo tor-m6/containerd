@@ -19,6 +19,7 @@ package adaptation
 import (
 	"fmt"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 
 	"sigs.k8s.io/yaml"
@@ -54,7 +55,7 @@ func DefaultConfig(path string) *Config {
 
 // ReadConfig reads the NRI runtime configuration from a file.
 func ReadConfig(path string) (*Config, error) {
-	buf, err := os.ReadFile(path)
+	buf, err := ioutil.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func (cfg *Config) getPluginConfig(id, base string) (string, error) {
 	}
 
 	for _, path := range dropIns {
-		buf, err := os.ReadFile(path)
+		buf, err := ioutil.ReadFile(path)
 		if err == nil {
 			return string(buf), nil
 		}

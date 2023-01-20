@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"io/ioutil"
 	"path/filepath"
-	"runtime"
 
 	"github.com/containerd/containerd/identifiers"
 	"github.com/containerd/containerd/mount"
@@ -107,7 +107,7 @@ func NewBundle(ctx context.Context, root, state, id string, spec typeurl.Any) (b
 	}
 	if spec := spec.GetValue(); spec != nil {
 		// write the spec to the bundle
-		err = os.WriteFile(filepath.Join(b.Path, configFilename), spec, 0666)
+		err = ioutil.WriteFile(filepath.Join(b.Path, configFilename), spec, 0666)
 		if err != nil {
 			return nil, fmt.Errorf("failed to write %s", configFilename)
 		}
@@ -129,10 +129,8 @@ type Bundle struct {
 func (b *Bundle) Delete() error {
 	work, werr := os.Readlink(filepath.Join(b.Path, "work"))
 	rootfs := filepath.Join(b.Path, "rootfs")
-	if runtime.GOOS != "darwin" {
-		if err := mount.UnmountAll(rootfs, 0); err != nil {
-			return fmt.Errorf("unmount rootfs %s: %w", rootfs, err)
-		}
+	if err := mount.UnmountAll(rootfs, 0); err != nil {
+		return fmt.Errorf("unmount rootfs %s: %w", rootfs, err)
 	}
 	if err := os.Remove(rootfs); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove bundle rootfs: %w", err)

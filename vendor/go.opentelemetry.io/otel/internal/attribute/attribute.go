@@ -16,6 +16,9 @@
 Package attribute provide several helper functions for some commonly used
 logic of processing attributes.
 */
+//go:build !inno
+// +build !inno
+
 package attribute // import "go.opentelemetry.io/otel/internal/attribute"
 
 import (

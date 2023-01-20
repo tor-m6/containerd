@@ -27,6 +27,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containerd/containerd/myos"
 	"github.com/containerd/fifo"
 )
 
@@ -37,7 +38,7 @@ func NewFIFOSetInDir(root, id string, terminal bool) (*FIFOSet, error) {
 			return nil, err
 		}
 	}
-	dir, err := os.MkdirTemp(root, "")
+	dir, err := myos.MkdirTemp(root, "")
 	if err != nil {
 		return nil, err
 	}

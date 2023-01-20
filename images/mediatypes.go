@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"github.com/containerd/containerd/mystrings"
 
 	"github.com/containerd/containerd/errdefs"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -102,7 +103,7 @@ func parseMediaTypes(mt string) (mediaType string, suffixes []string) {
 	if mt == "" {
 		return "", []string{}
 	}
-	mediaType, ext, ok := strings.Cut(mt, "+")
+	mediaType, ext, ok := mystrings.Cut(mt, "+")
 	if !ok {
 		return mediaType, []string{}
 	}

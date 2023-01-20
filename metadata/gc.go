@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/mystrings"
 	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/gc"
 	"github.com/containerd/containerd/log"
@@ -447,7 +448,7 @@ func (c *gcContext) references(ctx context.Context, tx *bolt.Tx, node gc.Node, f
 
 		return c.sendLabelRefs(node.Namespace, bkt, fn)
 	case ResourceSnapshot, resourceSnapshotFlat:
-		ss, name, ok := strings.Cut(node.Key, "/")
+		ss, name, ok := mystrings.Cut(node.Key, "/")
 		if !ok {
 			return fmt.Errorf("invalid snapshot gc key %s", node.Key)
 		}
@@ -599,7 +600,7 @@ func (c *gcContext) remove(ctx context.Context, tx *bolt.Tx, node gc.Node) (inte
 	case ResourceSnapshot:
 		sbkt := nsbkt.Bucket(bucketKeyObjectSnapshots)
 		if sbkt != nil {
-			ss, key, ok := strings.Cut(node.Key, "/")
+			ss, key, ok := mystrings.Cut(node.Key, "/")
 			if !ok {
 				return nil, fmt.Errorf("invalid snapshot gc key %s", node.Key)
 			}

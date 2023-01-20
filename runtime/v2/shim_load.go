@@ -20,17 +20,17 @@ import (
 	"context"
 	"errors"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/pkg/cleanup"
 )
 
 func (m *ShimManager) loadExistingTasks(ctx context.Context) error {
-	nsDirs, err := os.ReadDir(m.state)
+	nsDirs, err := ioutil.ReadDir(m.state)
 	if err != nil {
 		return err
 	}
@@ -61,9 +61,7 @@ func (m *ShimManager) loadShims(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	ctx = log.WithLogger(ctx, log.G(ctx).WithField("namespace", ns))
-
-	shimDirs, err := os.ReadDir(filepath.Join(m.state, ns))
+	shimDirs, err := ioutil.ReadDir(filepath.Join(m.state, ns))
 	if err != nil {
 		return err
 	}
@@ -83,7 +81,7 @@ func (m *ShimManager) loadShims(ctx context.Context) error {
 			return err
 		}
 		// fast path
-		bf, err := os.ReadDir(bundle.Path)
+		bf, err := ioutil.ReadDir(bundle.Path)
 		if err != nil {
 			bundle.Delete()
 			log.G(ctx).WithError(err).Errorf("fast path read bundle path for %s", bundle.Path)
@@ -99,7 +97,7 @@ func (m *ShimManager) loadShims(ctx context.Context) error {
 		)
 
 		// If we're on 1.6+ and specified custom path to the runtime binary, path will be saved in 'shim-binary-path' file.
-		if data, err := os.ReadFile(filepath.Join(bundle.Path, "shim-binary-path")); err == nil {
+		if data, err := ioutil.ReadFile(filepath.Join(bundle.Path, "shim-binary-path")); err == nil {
 			runtime = string(data)
 		} else if err != nil && !os.IsNotExist(err) {
 			log.G(ctx).WithError(err).Error("failed to read `runtime` path from bundle")
@@ -133,18 +131,17 @@ func (m *ShimManager) loadShims(ctx context.Context) error {
 				ttrpcAddress: m.containerdTTRPCAddress,
 				schedCore:    m.schedCore,
 			})
-		instance, err := loadShim(ctx, bundle, func() {
+		shim, err := loadShim(ctx, bundle, func() {
 			log.G(ctx).WithField("id", id).Info("shim disconnected")
 
-			cleanupAfterDeadShim(cleanup.Background(ctx), id, m.shims, m.events, binaryCall)
+			cleanupAfterDeadShim(context.Background(), id, ns, m.shims, m.events, binaryCall)
 			// Remove self from the runtime task list.
 			m.shims.Delete(ctx, id)
 		})
 		if err != nil {
-			cleanupAfterDeadShim(ctx, id, m.shims, m.events, binaryCall)
+			cleanupAfterDeadShim(ctx, id, ns, m.shims, m.events, binaryCall)
 			continue
 		}
-		shim := newShimTask(instance)
 
 		// There are 3 possibilities for the loaded shim here:
 		// 1. It could be a shim that is running a task.
@@ -163,7 +160,7 @@ func (m *ShimManager) loadShims(ctx context.Context) error {
 			// No need to do anything for removeTask since we never added this shim.
 			shim.delete(ctx, false, func(ctx context.Context, id string) {})
 		} else {
-			m.shims.Add(ctx, shim.ShimInstance)
+			m.shims.Add(ctx, shim)
 		}
 	}
 	return nil
@@ -174,7 +171,7 @@ func (m *ShimManager) cleanupWorkDirs(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	dirs, err := os.ReadDir(filepath.Join(m.root, ns))
+	dirs, err := ioutil.ReadDir(filepath.Join(m.root, ns))
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 /*
    Copyright The containerd Authors.
@@ -29,7 +30,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups/v3/cgroup1"
+	"github.com/containerd/cgroups"
 	eventstypes "github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/api/types/task"
@@ -102,7 +103,7 @@ type service struct {
 	cancel func()
 }
 
-func newCommand(ctx context.Context, id, containerdAddress, containerdTTRPCAddress string) (*exec.Cmd, error) {
+func newCommand(ctx context.Context, id, containerdBinary, containerdAddress, containerdTTRPCAddress string) (*exec.Cmd, error) {
 	ns, err := namespaces.NamespaceRequired(ctx)
 	if err != nil {
 		return nil, err
@@ -130,7 +131,7 @@ func newCommand(ctx context.Context, id, containerdAddress, containerdTTRPCAddre
 }
 
 func (s *service) StartShim(ctx context.Context, opts shim.StartOpts) (_ string, retErr error) {
-	cmd, err := newCommand(ctx, opts.ID, opts.Address, opts.TTRPCAddress)
+	cmd, err := newCommand(ctx, opts.ID, opts.ContainerdBinary, opts.Address, opts.TTRPCAddress)
 	if err != nil {
 		return "", err
 	}
@@ -203,7 +204,7 @@ func (s *service) StartShim(ctx context.Context, opts shim.StartOpts) (_ string,
 			}
 			if opts, ok := v.(*options.Options); ok {
 				if opts.ShimCgroup != "" {
-					cg, err := cgroup1.Load(cgroup1.StaticPath(opts.ShimCgroup))
+					cg, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(opts.ShimCgroup))
 					if err != nil {
 						return "", fmt.Errorf("failed to load cgroup %s: %w", opts.ShimCgroup, err)
 					}
@@ -317,7 +318,7 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (*taskAPI.
 	}
 	switch r.ExecID {
 	case "":
-		if cg, ok := container.Cgroup().(cgroup1.Cgroup); ok {
+		if cg, ok := container.Cgroup().(cgroups.Cgroup); ok {
 			if err := s.ep.Add(container.ID, cg); err != nil {
 				logrus.WithError(err).Error("add cg to OOM monitor")
 			}
@@ -595,22 +596,18 @@ func (s *service) Shutdown(ctx context.Context, r *taskAPI.ShutdownRequest) (*pt
 }
 
 func (s *service) Stats(ctx context.Context, r *taskAPI.StatsRequest) (*taskAPI.StatsResponse, error) {
-	container, err := s.getContainer()
-	if err != nil {
-		return nil, err
-	}
-	cgx := container.Cgroup()
+	cgx := s.container.Cgroup()
 	if cgx == nil {
 		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "cgroup does not exist")
 	}
-	cg, ok := cgx.(cgroup1.Cgroup)
+	cg, ok := cgx.(cgroups.Cgroup)
 	if !ok {
 		return nil, errdefs.ToGRPCf(errdefs.ErrNotImplemented, "cgroup v2 not implemented for Stats")
 	}
 	if cg == nil {
 		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "cgroup does not exist")
 	}
-	stats, err := cg.Stat(cgroup1.IgnoreNotExist)
+	stats, err := cg.Stat(cgroups.IgnoreNotExist)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,5 @@
 //go:build !windows
+// +build !windows
 
 /*
    Copyright The containerd Authors.
@@ -71,7 +72,7 @@ func serveListener(path string) (net.Listener, error) {
 }
 
 func reap(ctx context.Context, logger *logrus.Entry, signals chan os.Signal) error {
-	logger.Debug("starting signal loop")
+	logger.Info("starting signal loop")
 
 	for {
 		select {

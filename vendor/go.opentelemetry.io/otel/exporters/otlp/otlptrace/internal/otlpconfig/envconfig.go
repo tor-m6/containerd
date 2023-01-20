@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"net/url"
 	"os"
+	"io/ioutil"
 	"path"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ import (
 // DefaultEnvOptionsReader is the default environments reader.
 var DefaultEnvOptionsReader = envconfig.EnvOptionsReader{
 	GetEnv:    os.Getenv,
-	ReadFile:  os.ReadFile,
+	ReadFile:  ioutil.ReadFile,
 	Namespace: "OTEL_EXPORTER_OTLP",
 }
 

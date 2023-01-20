@@ -20,6 +20,7 @@ import (
 	gocontext "context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"time"
@@ -74,7 +75,7 @@ var publishCommand = cli.Command{
 }
 
 func getEventPayload(r io.Reader) (*types.Any, error) {
-	data, err := io.ReadAll(r)
+	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@ import (
 	"github.com/containerd/containerd/services/server"
 	srvconfig "github.com/containerd/containerd/services/server/config"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pelletier/go-toml"
+	// "github.com/pelletier/go-toml"
 	"github.com/urfave/cli"
 )
 
@@ -41,7 +41,7 @@ type Config struct {
 
 // WriteTo marshals the config to the provided writer
 func (c *Config) WriteTo(w io.Writer) (int64, error) {
-	return 0, toml.NewEncoder(w).Encode(c)
+	return 0, nil // toml.NewEncoder(w).Encode(c)
 }
 
 func outputConfig(cfg *srvconfig.Config) error {
@@ -86,7 +86,7 @@ func outputConfig(cfg *srvconfig.Config) error {
 	config.Config.Version = 2
 
 	// remove overridden Plugins type to avoid duplication in output
-	config.Config.Plugins = nil
+	// config.Config.Plugins = nil
 
 	_, err = config.WriteTo(os.Stdout)
 	return err

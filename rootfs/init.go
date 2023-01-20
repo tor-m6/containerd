@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containerd/containerd/myos"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/snapshots"
@@ -74,7 +75,7 @@ func createInitLayer(ctx context.Context, parent, initName string, initFn func(s
 	// TODO: ensure not exist error once added to snapshot package
 
 	// Create tempdir
-	td, err := os.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "create-init-")
+	td, err := myos.MkdirTemp(os.Getenv("XDG_RUNTIME_DIR"), "create-init-")
 	if err != nil {
 		return "", err
 	}

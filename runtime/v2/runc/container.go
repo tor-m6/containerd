@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 /*
    Copyright The containerd Authors.
@@ -26,9 +27,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/containerd/cgroups/v3"
-	"github.com/containerd/cgroups/v3/cgroup1"
-	cgroupsv2 "github.com/containerd/cgroups/v3/cgroup2"
+	"github.com/containerd/cgroups"
+	cgroupsv2 "github.com/containerd/cgroups/v2"
 	"github.com/containerd/console"
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/errdefs"
@@ -148,12 +148,12 @@ func NewContainer(ctx context.Context, platform stdio.Platform, r *task.CreateTa
 				logrus.WithError(err).Errorf("loading cgroup2 for %d", pid)
 				return container, nil
 			}
-			cg, err = cgroupsv2.Load(g)
+			cg, err = cgroupsv2.LoadManager("/sys/fs/cgroup", g)
 			if err != nil {
 				logrus.WithError(err).Errorf("loading cgroup2 for %d", pid)
 			}
 		} else {
-			cg, err = cgroup1.Load(cgroup1.PidPath(pid))
+			cg, err = cgroups.Load(cgroups.V1, cgroups.PidPath(pid))
 			if err != nil {
 				logrus.WithError(err).Errorf("loading cgroup for %d", pid)
 			}
@@ -368,12 +368,12 @@ func (c *Container) Start(ctx context.Context, r *task.StartRequest) (process.Pr
 			if err != nil {
 				logrus.WithError(err).Errorf("loading cgroup2 for %d", p.Pid())
 			}
-			cg, err = cgroupsv2.Load(g)
+			cg, err = cgroupsv2.LoadManager("/sys/fs/cgroup", g)
 			if err != nil {
 				logrus.WithError(err).Errorf("loading cgroup2 for %d", p.Pid())
 			}
 		} else {
-			cg, err = cgroup1.Load(cgroup1.PidPath(p.Pid()))
+			cg, err = cgroups.Load(cgroups.V1, cgroups.PidPath(p.Pid()))
 			if err != nil {
 				logrus.WithError(err).Errorf("loading cgroup for %d", p.Pid())
 			}

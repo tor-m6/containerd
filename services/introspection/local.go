@@ -19,6 +19,7 @@ package introspection
 import (
 	context "context"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -125,7 +126,7 @@ func (l *Local) getUUID() (string, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	data, err := os.ReadFile(l.uuidPath())
+	data, err := ioutil.ReadFile(l.uuidPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return l.generateUUID()
@@ -149,7 +150,7 @@ func (l *Local) generateUUID() (string, error) {
 		return "", err
 	}
 	uu := u.String()
-	if err := os.WriteFile(path, []byte(uu), 0666); err != nil {
+	if err := ioutil.WriteFile(path, []byte(uu), 0666); err != nil {
 		return "", err
 	}
 	return uu, nil

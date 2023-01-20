@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -352,7 +353,7 @@ func (r *dockerResolver) Resolve(ctx context.Context, ref string) (string, ocisp
 				err = func() error {
 					defer resp.Body.Close()
 					if dgst != "" {
-						_, err = io.Copy(io.Discard, &bodyReader)
+						_, err = io.Copy(ioutil.Discard, &bodyReader)
 						return err
 					}
 
