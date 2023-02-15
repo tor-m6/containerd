@@ -9,13 +9,17 @@ package myos
 import (
 	"os"
 	"errors"
+	_ "unsafe"
 )
 
 // fastrand provided by runtime.
 // We generate random temporary file names so that there's a good
 // chance the file doesn't exist yet - keeps the number of tries in
 // TempFile to a minimum.
-func fastrand() uint32
+// func fastrand() uint32
+
+//go:linkname runtime_fastrand runtime.fastrand
+func runtime_fastrand() uint32
 
 // Uitoa converts val to a decimal string.
 func Uitoa(val uint) string {
@@ -36,7 +40,7 @@ func Uitoa(val uint) string {
 }
 
 func nextRandom() string {
-	return Uitoa(uint(fastrand()))
+	return Uitoa(uint(runtime_fastrand()))
 }
 
 // CreateTemp creates a new temporary file in the directory dir,
