@@ -11,6 +11,12 @@ const (
 	SizeofLong = 0x8
 )
 
+const (
+	SizeofShort    = 0x2
+	SizeofInt      = 0x4
+	SizeofLongLong = 0x8
+)
+
 type (
 	_C_long int64
 )
